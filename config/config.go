@@ -1,4 +1,4 @@
-package hcms
+package config
 
 import (
 	"flag"

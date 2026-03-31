@@ -3,10 +3,12 @@ package hcms
 import (
 	"log"
 	"os"
+
+	"github.com/pchchv/hcms/config"
 )
 
 func main() {
-	cfg, err := Load()
+	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("config error: %v", err)
 	}
