@@ -3,6 +3,8 @@ package hcms
 import (
 	"errors"
 	"flag"
+	"fmt"
+	"os"
 	"strconv"
 )
 
@@ -38,4 +40,25 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func getEnv(key, fallback string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) (int, error) {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, fmt.Errorf("invalid environment variable %s=%q: %w", key, v, err)
+	}
+
+	return i, nil
 }
