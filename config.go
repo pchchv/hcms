@@ -1,7 +1,6 @@
 package hcms
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -36,7 +35,7 @@ func Load() (*Config, error) {
 	}
 
 	if cfg.Port < 1 || cfg.Port > 65535 {
-		return nil, errors.New("port " + strconv.Itoa(cfg.Port) + "is out of valid range 1-65535")
+		return nil, fmt.Errorf("port %d is out of valid range 1-65535", cfg.Port)
 	}
 
 	return cfg, nil
