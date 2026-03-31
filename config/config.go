@@ -40,6 +40,11 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("port %d is out of valid range 1-65535", cfg.Port)
 	}
 
+	// Infrastructure preparation.
+	if err := os.MkdirAll(cfg.UploadPath, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create upload directory %q: %w", cfg.UploadPath, err)
+	}
+
 	return cfg, nil
 }
 
