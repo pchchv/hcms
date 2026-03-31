@@ -17,17 +17,22 @@ type Config struct {
 // Load parses CLI flags and environment variables,
 // and checks whether the Port is in the range 1-65535.
 func Load() (*Config, error) {
-	var (
-		flagPort       int
-		flagDBPath     string
-		flagUploadPath string
-	)
+	// Read ENV.
+	// If there aren't any, use the hard-coded defaults.
+	envPort, err := getEnvInt("CMS_PORT", 8080)
+	if err != nil {
+		return nil, err
+	}
+	envDB := getEnv("CMS_DB_PATH", "./cms.db")
+	envUpload := getEnv("CMS_UPLOAD_PATH", "./uploads")
 
 	// Initialize the config using flags.
+	// The values ​​from ENV are now the default.
+	// If user enters the --port flag, it will OVERWRITE the value from ENV.
 	cfg := &Config{}
-	flag.IntVar(&cfg.Port, "port", flagPort, "HTTP listen port")
-	flag.StringVar(&cfg.DBPath, "db", flagDBPath, "SQLite database path")
-	flag.StringVar(&cfg.UploadPath, "upload", flagUploadPath, "Upload directory path")
+	flag.IntVar(&cfg.Port, "port", envPort, "HTTP listen port")
+	flag.StringVar(&cfg.DBPath, "db", envDB, "SQLite database path")
+	flag.StringVar(&cfg.UploadPath, "upload", envUpload, "Upload directory path")
 	flag.Parse()
 
 	// Validate Port.
