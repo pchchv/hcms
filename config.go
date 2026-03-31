@@ -23,17 +23,14 @@ func Load() (*Config, error) {
 		flagUploadPath string
 	)
 
-	flag.IntVar(&flagPort, "port", 8080, "HTTP listen port")
-	flag.StringVar(&flagDBPath, "db", "./cms.db", "SQLite database path")
-	flag.StringVar(&flagUploadPath, "upload", "./uploads", "Upload directory path")
+	// Initialize the config using flags.
+	cfg := &Config{}
+	flag.IntVar(&cfg.Port, "port", flagPort, "HTTP listen port")
+	flag.StringVar(&cfg.DBPath, "db", flagDBPath, "SQLite database path")
+	flag.StringVar(&cfg.UploadPath, "upload", flagUploadPath, "Upload directory path")
 	flag.Parse()
 
-	cfg := &Config{
-		Port:       flagPort,
-		DBPath:     flagDBPath,
-		UploadPath: flagUploadPath,
-	}
-
+	// Validate Port.
 	if cfg.Port < 1 || cfg.Port > 65535 {
 		return nil, fmt.Errorf("port %d is out of valid range 1-65535", cfg.Port)
 	}
