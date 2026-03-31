@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 )
@@ -44,6 +45,9 @@ func Load() (*Config, error) {
 	if err := os.MkdirAll(cfg.UploadPath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create upload directory %q: %w", cfg.UploadPath, err)
 	}
+
+	// Log the final parameters.
+	log.Printf("Configuration loaded: Port=%d, DB=%s, Uploads=%s", cfg.Port, cfg.DBPath, cfg.UploadPath)
 
 	return cfg, nil
 }
