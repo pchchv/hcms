@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"math/big"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -68,6 +70,39 @@ func Migrate(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+// SeedAdmin checks if the settings table is empty.
+// If so, it generates a random 12-character password,
+// hashes it with bcrypt, and inserts a row with the default settings.
+// Returns (true, plaintext password, nil) if seeded, (false, "", nil) otherwise.
+func SeedAdmin(db *sql.DB) (created bool, password string, err error) {
+	var count int
+	if err = db.QueryRow(`SELECT COUNT(*) FROM settings`).Scan(&count); err != nil {
+		return false, "", fmt.Errorf("count settings: %w", err)
+	} else if count > 0 {
+		return false, "", nil
+	}
+
+	password, err = generatePassword(12)
+	if err != nil {
+		return false, "", fmt.Errorf("generate password: %w", err)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return false, "", fmt.Errorf("bcrypt hash: %w", err)
+	}
+
+	if _, err = db.Exec(
+		`INSERT INTO settings (id, site_name, admin_email, admin_password, bitrix24_webhook, bitrix24_enabled)
+		 VALUES (1, 'My CMS', 'admin@example.com', ?, '', 0)`,
+		string(hash),
+	); err != nil {
+		return false, "", fmt.Errorf("insert settings: %w", err)
+	}
+
+	return true, password, nil
 }
 
 // generatePassword creates a random password of length n from the charset.
