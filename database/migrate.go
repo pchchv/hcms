@@ -1,11 +1,15 @@
 package database
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"fmt"
+	"math/big"
 )
 
-const schema = `
+const (
+	passwordCharset = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
+	schema          = `
 CREATE TABLE IF NOT EXISTS leads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -50,6 +54,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 `
+)
 
 // Migrate runs the schema migrations and cleans up expired sessions.
 func Migrate(db *sql.DB) error {
@@ -63,4 +68,20 @@ func Migrate(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+// generatePassword creates a random password of length n from the charset.
+func generatePassword(n int) (string, error) {
+	charset := []rune(passwordCharset)
+	result := make([]rune, n)
+	for i := range result {
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+
+		result[i] = charset[idx.Int64()]
+	}
+
+	return string(result), nil
 }
