@@ -22,5 +22,10 @@ func Open(path string) (*sql.DB, error) {
 	// WAL mode allows for one writer and multiple readers.
 	db.SetMaxOpenConns(1)
 
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ping sqlite: %w", err)
+	}
+
 	return db, nil
 }
