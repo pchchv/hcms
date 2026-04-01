@@ -1,5 +1,10 @@
 package database
 
+import (
+	"database/sql"
+	"fmt"
+)
+
 const schema = `
 CREATE TABLE IF NOT EXISTS leads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,3 +50,17 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 `
+
+// Migrate runs the schema migrations and cleans up expired sessions.
+func Migrate(db *sql.DB) error {
+	if _, err := db.Exec(schema); err != nil {
+		return fmt.Errorf("migrate schema: %w", err)
+	}
+
+	// Clean up expired sessions.
+	if _, err := db.Exec(`DELETE FROM sessions WHERE expires_at < datetime('now')`); err != nil {
+		return fmt.Errorf("cleanup sessions: %w", err)
+	}
+
+	return nil
+}
