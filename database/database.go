@@ -17,5 +17,10 @@ func Open(path string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
+
+	// SQLite supports only one writer at a time.
+	// WAL mode allows for one writer and multiple readers.
+	db.SetMaxOpenConns(1)
+
 	return db, nil
 }
