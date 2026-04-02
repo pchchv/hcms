@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/pchchv/hcms/models"
 )
@@ -28,4 +29,25 @@ func CreateNews(db *sql.DB, n *models.News) (int64, error) {
 
 	log.Printf("News created with ID=%d", id)
 	return id, nil
+}
+
+// UpdateNews updates all fields of a news item and sets updated_at to now.
+func UpdateNews(db *sql.DB, n *models.News) error {
+	_, err := db.Exec(
+		`UPDATE news SET date = ?, title = ?, image = ?, announce = ?, description = ?, updated_at = ?
+		 WHERE id = ?`,
+		n.Date.UTC(), n.Title, n.Image, n.Announce, n.Description, time.Now().UTC(), n.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("update news: %w", err)
+	}
+	return nil
+}
+
+// CountNews returns the total number of news items.
+func CountNews(db *sql.DB) (count int, err error) {
+	if err = db.QueryRow(`SELECT COUNT(*) FROM news`).Scan(&count); err != nil {
+		return 0, fmt.Errorf("count news: %w", err)
+	}
+	return
 }
