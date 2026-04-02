@@ -9,6 +9,13 @@ import (
 	"github.com/pchchv/hcms/models"
 )
 
+// NewsFilter defines filtering options for listing news.
+type NewsFilter struct {
+	Search string
+	Limit  int
+	Offset int
+}
+
 // CreateNews inserts a new news item and returns its ID.
 func CreateNews(db *sql.DB, n *models.News) (int64, error) {
 	log.Printf("Creating news: title=%q, date=%v", n.Title, n.Date)
