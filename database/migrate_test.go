@@ -60,6 +60,46 @@ func TestMigrate_CreatesAllTables(t *testing.T) {
 	}
 }
 
+func TestSeedAdmin_FirstRun(t *testing.T) {
+	db := openTestDB(t)
+	if err := Migrate(db); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	created, password, err := SeedAdmin(db)
+	if err != nil {
+		t.Fatalf("SeedAdmin: %v", err)
+	}
+	if !created {
+		t.Error("expected created=true on first run")
+	}
+	if len(password) == 0 {
+		t.Error("expected non-empty password")
+	}
+}
+
+func TestSeedAdmin_SecondRun(t *testing.T) {
+	db := openTestDB(t)
+	if err := Migrate(db); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	
+	if _, _, err := SeedAdmin(db); err != nil {
+		t.Fatalf("SeedAdmin first: %v", err)
+	}
+
+	created, password, err := SeedAdmin(db)
+	if err != nil {
+		t.Fatalf("SeedAdmin second: %v", err)
+	}
+	if created {
+		t.Error("expected created=false on second run")
+	}
+	if password != "" {
+		t.Errorf("expected empty password on second run, got %q", password)
+	}
+}
+
 func containsRune(s string, r rune) bool {
 	for _, c := range s {
 		if c == r {
