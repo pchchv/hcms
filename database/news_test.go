@@ -84,6 +84,44 @@ func TestGetNews_NotFound(t *testing.T) {
 	}
 }
 
+func TestListNews_All(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	_, _ = CreateNews(d, newNewsItem("Новость 1"))
+	_, _ = CreateNews(d, newNewsItem("Новость 2"))
+	_, _ = CreateNews(d, newNewsItem("Новость 3"))
+	res, err := ListNews(d, NewsFilter{Limit: 10})
+	if err != nil {
+		t.Fatalf("ListNews: %v", err)
+	}
+	if res.Total != 3 {
+		t.Errorf("expected total=3, got %d", res.Total)
+	}
+}
+
+func TestListNews_Pagination(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	for i := 0; i < 5; i++ {
+		_, _ = CreateNews(d, newNewsItem("Новость"))
+	}
+
+	res, err := ListNews(d, NewsFilter{Limit: 2, Offset: 0})
+	if err != nil {
+		t.Fatalf("ListNews: %v", err)
+	}
+	if res.Total != 5 {
+		t.Errorf("expected total=5, got %d", res.Total)
+	}
+	if len(res.News) != 2 {
+		t.Errorf("expected 2 news on page, got %d", len(res.News))
+	}
+}
+
 func TestDeleteNews_NotFound(t *testing.T) {
 	d := openTestDB(t)
 	if err := Migrate(d); err != nil {
