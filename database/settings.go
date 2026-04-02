@@ -35,3 +35,21 @@ func Get(db *sql.DB) (*models.Settings, error) {
 	s.Bitrix24Enabled = bitrixEnabled != 0
 	return &s, nil
 }
+
+// Upsert saves settings using INSERT OR REPLACE.
+func Upsert(db *sql.DB, s *models.Settings) error {
+	var bitrixEnabled int
+	if s.Bitrix24Enabled {
+		bitrixEnabled = 1
+	}
+
+	_, err := db.Exec(
+		`INSERT OR REPLACE INTO settings (id, site_name, admin_email, admin_password, bitrix24_webhook, bitrix24_enabled)
+		 VALUES (1, ?, ?, ?, ?, ?)`,
+		s.SiteName, s.AdminEmail, s.AdminPassword, s.Bitrix24Webhook, bitrixEnabled,
+	)
+	if err != nil {
+		return fmt.Errorf("upsert settings: %w", err)
+	}
+	return nil
+}
