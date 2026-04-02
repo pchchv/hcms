@@ -30,6 +30,36 @@ func TestGeneratePassword_UsesCharset(t *testing.T) {
 	}
 }
 
+func TestMigrate_Idempotent(t *testing.T) {
+	db := openTestDB(t)
+	for i := 0; i < 3; i++ {
+		if err := Migrate(db); err != nil {
+			t.Fatalf("Migrate run %d: %v", i+1, err)
+		}
+	}
+}
+
+func TestMigrate_CreatesAllTables(t *testing.T) {
+	db := openTestDB(t)
+	if err := Migrate(db); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	tables := []string{"leads", "news", "settings", "sessions"}
+	for _, name := range tables {
+		var cnt int
+		err := db.QueryRow(
+			`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, name,
+		).Scan(&cnt)
+		if err != nil {
+			t.Errorf("query table %q: %v", name, err)
+		}
+		if cnt != 1 {
+			t.Errorf("table %q not found after Migrate", name)
+		}
+	}
+}
+
 func containsRune(s string, r rune) bool {
 	for _, c := range s {
 		if c == r {
