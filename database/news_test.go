@@ -7,6 +7,32 @@ import (
 	"github.com/pchchv/hcms/models"
 )
 
+func TestCreateAndGetNews(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	id, err := CreateNews(d, newNewsItem("Тест новости"))
+	if err != nil {
+		t.Fatalf("CreateNews: %v", err)
+	}
+	if id == 0 {
+		t.Error("expected non-zero ID")
+	}
+
+	got, err := GetNews(d, int(id))
+	if err != nil {
+		t.Fatalf("GetNews: %v", err)
+	}
+	if got == nil {
+		t.Fatal("GetNews returned nil")
+	}
+	if got.Title != "Тест новости" {
+		t.Errorf("Title mismatch: %q", got.Title)
+	}
+}
+
 func TestUpdateNews(t *testing.T) {
 	d := openTestDB(t)
 	if err := Migrate(d); err != nil {
@@ -70,6 +96,30 @@ func TestDeleteNews_NotFound(t *testing.T) {
 	}
 	if deleted != nil {
 		t.Error("expected nil for missing news")
+	}
+}
+
+func TestDeleteNews(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	id, _ := CreateNews(d, newNewsItem("К удалению"))
+	deleted, err := DeleteNews(d, int(id))
+	if err != nil {
+		t.Fatalf("DeleteNews: %v", err)
+	}
+	if deleted == nil {
+		t.Error("expected deleted news item to be returned")
+	}
+	if deleted.Title != "К удалению" {
+		t.Errorf("unexpected deleted title: %q", deleted.Title)
+	}
+
+	got, _ := GetNews(d, int(id))
+	if got != nil {
+		t.Error("expected nil for deleted news")
 	}
 }
 
