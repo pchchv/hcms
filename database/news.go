@@ -16,6 +16,13 @@ type NewsFilter struct {
 	Offset int
 }
 
+// NewsResult holds a page of news items and
+// the total count matching the filter.
+type NewsResult struct {
+	News  []models.News
+	Total int
+}
+
 // CreateNews inserts a new news item and returns its ID.
 func CreateNews(db *sql.DB, n *models.News) (int64, error) {
 	log.Printf("Creating news: title=%q, date=%v", n.Title, n.Date)
