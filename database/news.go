@@ -51,3 +51,13 @@ func CountNews(db *sql.DB) (count int, err error) {
 	}
 	return
 }
+
+// scanNews scans a news row.
+func scanNews(scan func(...any) error) (*models.News, error) {
+	var n models.News
+	if err := scan(&n.ID, &n.Date, &n.Title, &n.Image, &n.Announce, &n.Description,
+		&n.CreatedAt, &n.UpdatedAt); err != nil {
+		return nil, err
+	}
+	return &n, nil
+}
