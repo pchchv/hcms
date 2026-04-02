@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/pchchv/hcms/models"
@@ -81,6 +82,66 @@ func GetNews(db *sql.DB, id int) (*models.News, error) {
 	}
 
 	return n, nil
+}
+
+// ListNews returns filtered, paginated news and the total matching count.
+func ListNews(db *sql.DB, f NewsFilter) (*NewsResult, error) {
+	var args []any
+	var conditions []string
+	if f.Search != "" {
+		like := "%" + f.Search + "%"
+		conditions = append(conditions, "(title LIKE ? OR announce LIKE ?)")
+		args = append(args, like, like)
+	}
+
+	var where string
+	if len(conditions) > 0 {
+		where = " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// Count total.
+	var total int
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	if err := db.QueryRow("SELECT COUNT(*) FROM news"+where, countArgs...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("count news: %w", err)
+	}
+
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	offset := f.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	pageArgs := append(args, limit, offset)
+	rows, err := db.Query(
+		`SELECT id, date, title, image, announce, description, created_at, updated_at
+		 FROM news`+where+` ORDER BY date DESC LIMIT ? OFFSET ?`,
+		pageArgs...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list news: %w", err)
+	}
+	defer rows.Close()
+
+	newsList := make([]models.News, 0)
+	for rows.Next() {
+		n, err := scanNews(rows.Scan)
+		if err != nil {
+			return nil, fmt.Errorf("scan news: %w", err)
+		}
+		newsList = append(newsList, *n)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return &NewsResult{News: newsList, Total: total}, nil
 }
 
 // DeleteNews removes a news item by ID and returns the deleted item (for image cleanup).
