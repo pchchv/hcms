@@ -7,6 +7,42 @@ import (
 	"github.com/pchchv/hcms/models"
 )
 
+func TestUpdateNews(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	id, _ := CreateNews(d, newNewsItem("Оригинальный заголовок"))
+	item, _ := GetNews(d, int(id))
+	item.Title = "Обновлённый заголовок"
+	if err := UpdateNews(d, item); err != nil {
+		t.Fatalf("UpdateNews: %v", err)
+	}
+
+	got, _ := GetNews(d, int(id))
+	if got.Title != "Обновлённый заголовок" {
+		t.Errorf("expected updated title, got %q", got.Title)
+	}
+}
+
+func TestCountNews(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	_, _ = CreateNews(d, newNewsItem("A"))
+	_, _ = CreateNews(d, newNewsItem("B"))
+	count, err := CountNews(d)
+	if err != nil {
+		t.Fatalf("CountNews: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2, got %d", count)
+	}
+}
+
 func TestGetNews_NotFound(t *testing.T) {
 	d := openTestDB(t)
 	if err := Migrate(d); err != nil {
