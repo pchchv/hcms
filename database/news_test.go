@@ -1,6 +1,11 @@
 package database
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/pchchv/hcms/models"
+)
 
 func TestGetNews_NotFound(t *testing.T) {
 	d := openTestDB(t)
@@ -29,5 +34,15 @@ func TestDeleteNews_NotFound(t *testing.T) {
 	}
 	if deleted != nil {
 		t.Error("expected nil for missing news")
+	}
+}
+
+func newNewsItem(title string) *models.News {
+	return &models.News{
+		Date:        time.Now().UTC(),
+		Title:       title,
+		Image:       "",
+		Announce:    "Краткое описание " + title,
+		Description: "Полное описание " + title,
 	}
 }
