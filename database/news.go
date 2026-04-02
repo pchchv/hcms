@@ -52,6 +52,40 @@ func CountNews(db *sql.DB) (count int, err error) {
 	return
 }
 
+// GetNews returns a news item by its ID.
+func GetNews(db *sql.DB, id int) (*models.News, error) {
+	row := db.QueryRow(
+		`SELECT id, date, title, image, announce, description, created_at, updated_at
+		 FROM news WHERE id = ?`,
+		id,
+	)
+	n, err := scanNews(row.Scan)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("get news %d: %w", id, err)
+	}
+
+	return n, nil
+}
+
+// DeleteNews removes a news item by ID and returns the deleted item (for image cleanup).
+func DeleteNews(db *sql.DB, id int) (*models.News, error) {
+	// Fetch first so we can return info for cleanup.
+	n, err := GetNews(db, id)
+	if err != nil {
+		return nil, err
+	} else if n == nil {
+		return nil, nil
+	}
+
+	if _, err := db.Exec(`DELETE FROM news WHERE id = ?`, id); err != nil {
+		return nil, fmt.Errorf("delete news: %w", err)
+	}
+
+	return n, nil
+}
+
 // scanNews scans a news row.
 func scanNews(scan func(...any) error) (*models.News, error) {
 	var n models.News
