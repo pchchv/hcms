@@ -65,3 +65,11 @@ func UpdateLeadBitrix(db *sql.DB, id int, status, response string, sentAt time.T
 	}
 	return nil
 }
+
+// DeleteLead removes a lead by ID.
+func DeleteLead(db *sql.DB, id int) error {
+	if _, err := db.Exec(`DELETE FROM leads WHERE id = ?`, id); err != nil {
+		return fmt.Errorf("delete lead: %w", err)
+	}
+	return nil
+}
