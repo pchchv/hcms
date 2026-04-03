@@ -66,6 +66,51 @@ func UpdateLeadBitrix(db *sql.DB, id int, status, response string, sentAt time.T
 	return nil
 }
 
+// GetLead returns a lead by its ID.
+func GetLead(db *sql.DB, id int) (l *models.Lead, err error) {
+	row := db.QueryRow(
+		`SELECT id, name, phone, email, comment, status, bitrix_response, bitrix_sent_at, created_at
+		 FROM leads WHERE id = ?`,
+		id,
+	)
+	l, err = scanLead(row.Scan)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get lead %d: %w", id, err)
+	}
+	return
+}
+
+// ListRecentLeads returns the N most recently created leads.
+func ListRecentLeads(db *sql.DB, n int) ([]models.Lead, error) {
+	rows, err := db.Query(
+		`SELECT id, name, phone, email, comment, status, bitrix_response, bitrix_sent_at, created_at
+		 FROM leads ORDER BY created_at DESC LIMIT ?`,
+		n,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list recent leads: %w", err)
+	}
+	defer rows.Close()
+
+	leads := make([]models.Lead, 0, n)
+	for rows.Next() {
+		l, err := scanLead(rows.Scan)
+		if err != nil {
+			return nil, fmt.Errorf("scan lead: %w", err)
+		}
+		leads = append(leads, *l)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return leads, nil
+}
+
 // DeleteLead removes a lead by ID.
 func DeleteLead(db *sql.DB, id int) error {
 	if _, err := db.Exec(`DELETE FROM leads WHERE id = ?`, id); err != nil {
