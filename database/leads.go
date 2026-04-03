@@ -8,6 +8,14 @@ import (
 	"github.com/pchchv/hcms/models"
 )
 
+// LeadsFilter defines filtering options for listing leads.
+type LeadsFilter struct {
+	Search string
+	Status string
+	Limit  int
+	Offset int
+}
+
 // CreateLead inserts a new lead and returns its ID.
 func CreateLead(db *sql.DB, lead *models.Lead) (int64, error) {
 	res, err := db.Exec(
