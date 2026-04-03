@@ -62,3 +62,23 @@ func TestGetSession_NotFound(t *testing.T) {
 		t.Error("expected nil for missing session")
 	}
 }
+
+func TestDeleteSession(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	sessionID, _ := CreateSession(d, 1)
+	if err := DeleteSession(d, sessionID); err != nil {
+		t.Fatalf("DeleteSession: %v", err)
+	}
+
+	session, err := GetSession(d, sessionID)
+	if err != nil {
+		t.Fatalf("GetSession after delete: %v", err)
+	}
+	if session != nil {
+		t.Error("expected nil after deleting session")
+	}
+}
