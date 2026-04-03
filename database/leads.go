@@ -3,6 +3,8 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/pchchv/hcms/models"
@@ -14,6 +16,29 @@ type LeadsFilter struct {
 	Status string
 	Limit  int
 	Offset int
+}
+
+// HasFilters returns true if any filter is active.
+func (f LeadsFilter) HasFilters() bool {
+	return f.Search != "" || f.Status != ""
+}
+
+// QueryString returns the filter parameters as a URL-encoded query string.
+func (f LeadsFilter) QueryString() string {
+	params := url.Values{}
+	if f.Search != "" {
+		params.Set("search", f.Search)
+	}
+
+	if f.Status != "" {
+		params.Set("status", f.Status)
+	}
+
+	if f.Limit > 0 && f.Limit != 20 {
+		params.Set("limit", strconv.Itoa(f.Limit))
+	}
+
+	return params.Encode()
 }
 
 // CreateLead inserts a new lead and returns its ID.
