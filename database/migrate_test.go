@@ -83,7 +83,7 @@ func TestSeedAdmin_SecondRun(t *testing.T) {
 	if err := Migrate(db); err != nil {
 		t.Fatalf("Migrate: %v", err)
 	}
-	
+
 	if _, _, err := SeedAdmin(db); err != nil {
 		t.Fatalf("SeedAdmin first: %v", err)
 	}
