@@ -73,3 +73,23 @@ func DeleteLead(db *sql.DB, id int) error {
 	}
 	return nil
 }
+
+// scanLead scans a lead row from a *sql.Rows or *sql.Row.
+func scanLead(scan func(...any) error) (*models.Lead, error) {
+	var l models.Lead
+	var bitrixSentAt sql.NullTime
+	err := scan(
+		&l.ID, &l.Name, &l.Phone, &l.Email, &l.Comment,
+		&l.Status, &l.BitrixResponse, &bitrixSentAt, &l.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if bitrixSentAt.Valid {
+		t := bitrixSentAt.Time
+		l.BitrixSentAt = &t
+	}
+
+	return &l, nil
+}
