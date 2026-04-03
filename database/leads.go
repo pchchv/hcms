@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pchchv/hcms/models"
@@ -148,6 +149,72 @@ func ListRecentLeads(db *sql.DB, n int) ([]models.Lead, error) {
 	}
 
 	return leads, nil
+}
+
+// ListLeads returns filtered, paginated leads and the total matching count.
+func ListLeads(db *sql.DB, f LeadsFilter) (*LeadsResult, error) {
+	var args []any
+	var conditions []string
+	if f.Status != "" {
+		conditions = append(conditions, "status = ?")
+		args = append(args, f.Status)
+	}
+
+	if f.Search != "" {
+		like := "%" + f.Search + "%"
+		conditions = append(conditions, "(name LIKE ? OR phone LIKE ? OR email LIKE ?)")
+		args = append(args, like, like, like)
+	}
+
+	var where string
+	if len(conditions) > 0 {
+		where = " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// Count total.
+	var total int
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	if err := db.QueryRow("SELECT COUNT(*) FROM leads"+where, countArgs...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("count leads: %w", err)
+	}
+
+	// Fetch page.
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	offset := f.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	pageArgs := append(args, limit, offset)
+	rows, err := db.Query(
+		`SELECT id, name, phone, email, comment, status, bitrix_response, bitrix_sent_at, created_at
+		 FROM leads`+where+` ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+		pageArgs...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list leads: %w", err)
+	}
+	defer rows.Close()
+
+	leads := make([]models.Lead, 0)
+	for rows.Next() {
+		l, err := scanLead(rows.Scan)
+		if err != nil {
+			return nil, fmt.Errorf("scan lead: %w", err)
+		}
+		leads = append(leads, *l)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return &LeadsResult{Leads: leads, Total: total}, nil
 }
 
 // DeleteLead removes a lead by ID.
