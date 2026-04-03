@@ -25,3 +25,22 @@ func CreateLead(db *sql.DB, lead *models.Lead) (int64, error) {
 
 	return id, nil
 }
+
+// CountByStatus returns the count of leads with the given status.
+func CountByStatus(db *sql.DB, status string) (count int, err error) {
+	if err = db.QueryRow(`SELECT COUNT(*) FROM leads WHERE status = ?`, status).Scan(&count); err != nil {
+		return 0, fmt.Errorf("count by status: %w", err)
+	}
+	return
+}
+
+// CountCreatedToday returns the count of leads created today (UTC).
+func CountCreatedToday(db *sql.DB) (count int, err error) {
+	err = db.QueryRow(
+		`SELECT COUNT(*) FROM leads WHERE date(created_at) = date('now')`,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count today: %w", err)
+	}
+	return
+}
