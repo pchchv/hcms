@@ -41,6 +41,12 @@ func (f LeadsFilter) QueryString() string {
 	return params.Encode()
 }
 
+// LeadsResult holds a page of leads and the total count matching the filter.
+type LeadsResult struct {
+	Leads []models.Lead
+	Total int
+}
+
 // CreateLead inserts a new lead and returns its ID.
 func CreateLead(db *sql.DB, lead *models.Lead) (int64, error) {
 	res, err := db.Exec(
