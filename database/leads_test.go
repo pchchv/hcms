@@ -2,6 +2,7 @@ package database
 
 import (
 	"testing"
+	"time"
 
 	"github.com/pchchv/hcms/models"
 )
@@ -102,5 +103,60 @@ func TestListRecentLeads(t *testing.T) {
 	}
 	if len(leads) != 3 {
 		t.Errorf("expected 3 recent leads, got %d", len(leads))
+	}
+}
+
+func TestUpdateLeadStatus(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	id, _ := CreateLead(d, &models.Lead{Name: "Test", Phone: "123", Status: models.StatusNew})
+
+	if err := UpdateLeadStatus(d, int(id), models.StatusSent); err != nil {
+		t.Fatalf("UpdateLeadStatus: %v", err)
+	}
+	got, _ := GetLead(d, int(id))
+	if got.Status != models.StatusSent {
+		t.Errorf("expected status 'sent', got %q", got.Status)
+	}
+}
+
+func TestUpdateLeadBitrix(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	id, _ := CreateLead(d, &models.Lead{Name: "Test", Phone: "123", Status: models.StatusNew})
+
+	sentAt := time.Now().UTC().Truncate(time.Second)
+	if err := UpdateLeadBitrix(d, int(id), models.StatusSent, "ok", sentAt); err != nil {
+		t.Fatalf("UpdateLeadBitrix: %v", err)
+	}
+	got, _ := GetLead(d, int(id))
+	if got.BitrixResponse != "ok" {
+		t.Errorf("expected BitrixResponse 'ok', got %q", got.BitrixResponse)
+	}
+	if got.Status != models.StatusSent {
+		t.Errorf("expected status 'sent', got %q", got.Status)
+	}
+}
+
+func TestDeleteLead(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	id, _ := CreateLead(d, &models.Lead{Name: "Test", Phone: "123", Status: models.StatusNew})
+
+	if err := DeleteLead(d, int(id)); err != nil {
+		t.Fatalf("DeleteLead: %v", err)
+	}
+	got, err := GetLead(d, int(id))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != nil {
+		t.Error("expected nil for deleted lead")
 	}
 }
