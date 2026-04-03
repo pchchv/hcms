@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/pchchv/hcms/models"
 )
@@ -43,4 +44,24 @@ func CountCreatedToday(db *sql.DB) (count int, err error) {
 		return 0, fmt.Errorf("count today: %w", err)
 	}
 	return
+}
+
+// UpdateLeadStatus updates only the status field of a lead.
+func UpdateLeadStatus(db *sql.DB, id int, status string) error {
+	if _, err := db.Exec(`UPDATE leads SET status = ? WHERE id = ?`, status, id); err != nil {
+		return fmt.Errorf("update lead status: %w", err)
+	}
+	return nil
+}
+
+// UpdateLeadBitrix updates the status, bitrix_response, and bitrix_sent_at fields.
+func UpdateLeadBitrix(db *sql.DB, id int, status, response string, sentAt time.Time) error {
+	_, err := db.Exec(
+		`UPDATE leads SET status = ?, bitrix_response = ?, bitrix_sent_at = ? WHERE id = ?`,
+		status, response, sentAt.UTC(), id,
+	)
+	if err != nil {
+		return fmt.Errorf("update lead bitrix: %w", err)
+	}
+	return nil
 }
