@@ -142,6 +142,61 @@ func TestUpdateLeadBitrix(t *testing.T) {
 	}
 }
 
+func TestListLeads_EmptyFilters(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	_, _ = CreateLead(d, &models.Lead{Name: "A", Phone: "111", Status: models.StatusNew})
+	_, _ = CreateLead(d, &models.Lead{Name: "B", Phone: "222", Status: models.StatusNew})
+	res, err := ListLeads(d, LeadsFilter{Limit: 10})
+	if err != nil {
+		t.Fatalf("ListLeads: %v", err)
+	}
+	if res.Total != 2 {
+		t.Errorf("expected total=2, got %d", res.Total)
+	}
+	if len(res.Leads) != 2 {
+		t.Errorf("expected 2 leads, got %d", len(res.Leads))
+	}
+}
+
+func TestListLeads_StatusFilter(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	id, _ := CreateLead(d, &models.Lead{Name: "A", Phone: "111", Status: models.StatusNew})
+	_ = UpdateLeadStatus(d, int(id), models.StatusSent)
+	_, _ = CreateLead(d, &models.Lead{Name: "B", Phone: "222", Status: models.StatusNew})
+	res, err := ListLeads(d, LeadsFilter{Status: models.StatusSent, Limit: 10})
+	if err != nil {
+		t.Fatalf("ListLeads: %v", err)
+	}
+	if res.Total != 1 || len(res.Leads) != 1 {
+		t.Errorf("expected 1 sent lead, got total=%d, len=%d", res.Total, len(res.Leads))
+	}
+}
+
+func TestListLeads_SearchFilter(t *testing.T) {
+	d := openTestDB(t)
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+
+	_, _ = CreateLead(d, &models.Lead{Name: "Иван Петров", Phone: "111", Status: models.StatusNew})
+	_, _ = CreateLead(d, &models.Lead{Name: "Мария Сидорова", Phone: "222", Status: models.StatusNew})
+	res, err := ListLeads(d, LeadsFilter{Search: "Иван", Limit: 10})
+	if err != nil {
+		t.Fatalf("ListLeads: %v", err)
+	}
+	if res.Total != 1 || len(res.Leads) != 1 {
+		t.Errorf("expected 1 search result, got total=%d", res.Total)
+	}
+}
+
 func TestDeleteLead(t *testing.T) {
 	d := openTestDB(t)
 	if err := Migrate(d); err != nil {
