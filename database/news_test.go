@@ -149,7 +149,7 @@ func TestDeleteNews(t *testing.T) {
 		t.Fatalf("DeleteNews: %v", err)
 	}
 	if deleted == nil {
-		t.Error("expected deleted news item to be returned")
+		t.Fatal("expected deleted news item to be returned, got nil")
 	}
 	if deleted.Title != "К удалению" {
 		t.Errorf("unexpected deleted title: %q", deleted.Title)
