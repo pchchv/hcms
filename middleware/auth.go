@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/pchchv/hcms/database"
+	"github.com/pchchv/hcms/models"
 )
 
 // SessionKey is the context key for storing the authenticated session.
@@ -43,4 +44,16 @@ func Auth(db *sql.DB) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// GetSession retrieves the authenticated session from the context.
+// Returns nil if no session is stored.
+func GetSession(ctx context.Context) *models.Session {
+	v := ctx.Value(SessionKey)
+	if v == nil {
+		return nil
+	}
+
+	s, _ := v.(*models.Session)
+	return s
 }
