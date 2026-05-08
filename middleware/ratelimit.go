@@ -1,11 +1,17 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
+)
+
+const (
+	rateLimitRequests = 10
+	rateLimitWindow   = time.Minute
 )
 
 // bucket holds the request count and the start of the current window for one IP.
@@ -25,6 +31,38 @@ type RateLimiter struct {
 // NewRateLimiter creates a new RateLimiter.
 func NewRateLimiter() *RateLimiter {
 	return &RateLimiter{buckets: make(map[string]*bucket)}
+}
+
+// Middleware returns an HTTP middleware that enforces rate limits.
+func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := realIP(r)
+		b := rl.getOrCreate(ip)
+
+		// reset window if expired; mutex guards only this compound check-and-reset
+		now := time.Now()
+		b.mu.Lock()
+		if now.Sub(b.windowStart) > rateLimitWindow {
+			b.windowStart = now
+			b.count.Store(0)
+		}
+
+		b.mu.Unlock()
+
+		// atomic increment — no mutex needed for the hot path
+		if b.count.Add(1) > rateLimitRequests {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Retry-After", "60")
+			w.WriteHeader(http.StatusTooManyRequests)
+			json.NewEncoder(w).Encode(map[string]string{
+				"status":  "error",
+				"message": "Too many requests. Please try again later.",
+			})
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (rl *RateLimiter) getOrCreate(ip string) *bucket {
