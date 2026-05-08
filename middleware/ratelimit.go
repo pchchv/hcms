@@ -27,6 +27,26 @@ func NewRateLimiter() *RateLimiter {
 	return &RateLimiter{buckets: make(map[string]*bucket)}
 }
 
+func (rl *RateLimiter) getOrCreate(ip string) *bucket {
+	rl.mu.RLock()
+	b, ok := rl.buckets[ip]
+	rl.mu.RUnlock()
+	if ok {
+		return b
+	}
+
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	if b, ok = rl.buckets[ip]; ok {
+		return b
+	}
+
+	b = &bucket{windowStart: time.Now()}
+	rl.buckets[ip] = b
+	return b
+}
+
 // realIP extracts the client IP, respecting X-Forwarded-For and X-Real-IP headers.
 func realIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
