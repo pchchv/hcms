@@ -13,3 +13,14 @@ type bucket struct {
 	windowStart time.Time
 	count       atomic.Int64
 }
+
+// RateLimiter implements IP-based rate limiting.
+type RateLimiter struct {
+	mu      sync.RWMutex
+	buckets map[string]*bucket
+}
+
+// NewRateLimiter creates a new RateLimiter.
+func NewRateLimiter() *RateLimiter {
+	return &RateLimiter{buckets: make(map[string]*bucket)}
+}
