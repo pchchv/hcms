@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"net"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,4 +25,31 @@ type RateLimiter struct {
 // NewRateLimiter creates a new RateLimiter.
 func NewRateLimiter() *RateLimiter {
 	return &RateLimiter{buckets: make(map[string]*bucket)}
+}
+
+// realIP extracts the client IP, respecting X-Forwarded-For and X-Real-IP headers.
+func realIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// take the first IP in the list
+		if idx := len(xff); idx > 0 {
+			for i, ch := range xff {
+				if ch == ',' {
+					xff = xff[:i]
+					break
+				}
+			}
+			return xff
+		}
+	}
+
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return xri
+	}
+
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+
+	return host
 }
