@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -63,6 +64,31 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// Cleanup removes stale IP buckets every 5 minutes until ctx is cancelled.
+func (rl *RateLimiter) Cleanup(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			now := time.Now()
+			rl.mu.Lock()
+			for ip, b := range rl.buckets {
+				b.mu.Lock()
+				expired := now.Sub(b.windowStart) > rateLimitWindow
+				b.mu.Unlock()
+				if expired {
+					delete(rl.buckets, ip)
+				}
+			}
+			rl.mu.Unlock()
+		}
+	}
 }
 
 func (rl *RateLimiter) getOrCreate(ip string) *bucket {
