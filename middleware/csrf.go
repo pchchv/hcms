@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"net/http"
 )
 
 // csrfSecret is generated once at startup.
@@ -41,4 +43,13 @@ func Verify(sessionID, token string) bool {
 	}
 
 	return hmac.Equal(eBytes, tBytes)
+}
+
+func csrfForbidden(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "error",
+		"message": "Invalid or missing CSRF token",
+	})
 }
