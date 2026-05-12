@@ -1,6 +1,11 @@
 package middleware
 
-import "crypto/rand"
+import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+)
 
 // csrfSecret is generated once at startup.
 var csrfSecret []byte
@@ -12,4 +17,11 @@ func init() {
 	}
 
 	csrfSecret = secret
+}
+
+// GenerateToken returns an HMAC-SHA256 of the sessionID using the CSRF secret.
+func GenerateToken(sessionID string) string {
+	mac := hmac.New(sha256.New, csrfSecret)
+	mac.Write([]byte(sessionID))
+	return hex.EncodeToString(mac.Sum(nil))
 }
