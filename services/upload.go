@@ -107,3 +107,23 @@ func (u *Uploader) Save(fh *multipart.FileHeader) (string, error) {
 
 	return "/uploads/" + filename, nil
 }
+
+// Delete removes a file by its relative path (e.g., "/uploads/abc123.jpg").
+func (u *Uploader) Delete(path string) error {
+	if path == "" {
+		return nil
+	}
+
+	// strip the leading "/uploads/" prefix and resolve to absolute path
+	name := strings.TrimPrefix(path, "/uploads/")
+	if name == "" {
+		return nil
+	}
+
+	absPath := filepath.Join(u.Dir, name)
+	if err := os.Remove(absPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("delete upload %q: %w", absPath, err)
+	}
+
+	return nil
+}
