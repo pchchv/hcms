@@ -45,6 +45,35 @@ func Verify(sessionID, token string) bool {
 	return hmac.Equal(eBytes, tBytes)
 }
 
+// Middleware enforces CSRF token verification on mutating HTTP methods.
+// Token is read from form field "_csrf" or header "X-CSRF-Token".
+// Session ID is read from cookie "cms_session".
+func Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+			// read session cookie
+			cookie, err := r.Cookie("cms_session")
+			if err != nil || cookie.Value == "" {
+				csrfForbidden(w)
+				return
+			}
+
+			// read token from form field or header.
+			token := r.FormValue("_csrf")
+			if token == "" {
+				token = r.Header.Get("X-CSRF-Token")
+			}
+
+			if !Verify(cookie.Value, token) {
+				csrfForbidden(w)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func csrfForbidden(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
