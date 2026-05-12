@@ -70,6 +70,42 @@ func TestUploader_Save_PNG(t *testing.T) {
 	}
 }
 
+func TestUploader_Delete_Existing(t *testing.T) {
+	dir := t.TempDir()
+	u := NewUploader(dir)
+	// create a real file
+	fname := "testfile.png"
+	if err := os.WriteFile(filepath.Join(dir, fname), []byte("data"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if err := u.Delete("/uploads/" + fname); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, fname)); !os.IsNotExist(err) {
+		t.Error("file should be deleted")
+	}
+}
+
+func TestUploader_Delete_NotExists(t *testing.T) {
+	dir := t.TempDir()
+	u := NewUploader(dir)
+
+	// deleting a non-existent file should not return error
+	if err := u.Delete("/uploads/nonexistent.png"); err != nil {
+		t.Errorf("Delete of non-existent file should not error: %v", err)
+	}
+}
+
+func TestUploader_Delete_EmptyPath(t *testing.T) {
+	dir := t.TempDir()
+	u := NewUploader(dir)
+	if err := u.Delete(""); err != nil {
+		t.Errorf("Delete of empty path should not error: %v", err)
+	}
+}
+
 func makeFakeMultipartFile(t *testing.T, content []byte, filename, contentType string) *multipart.FileHeader {
 	t.Helper()
 	var buf bytes.Buffer
