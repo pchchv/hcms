@@ -17,3 +17,30 @@ func TestGenerateToken_DifferentInputs(t *testing.T) {
 		t.Error("different session IDs should produce different tokens")
 	}
 }
+
+func TestVerify_Valid(t *testing.T) {
+	sessionID := "test-session-id"
+	token := GenerateToken(sessionID)
+	if !Verify(sessionID, token) {
+		t.Error("Verify should return true for valid token")
+	}
+}
+
+func TestVerify_Invalid(t *testing.T) {
+	if Verify("session-id", "wrongtoken") {
+		t.Error("Verify should return false for wrong token")
+	}
+}
+
+func TestVerify_EmptyToken(t *testing.T) {
+	if Verify("session-id", "") {
+		t.Error("Verify should return false for empty token")
+	}
+}
+
+func TestVerify_WrongSession(t *testing.T) {
+	token := GenerateToken("correct-session")
+	if Verify("wrong-session", token) {
+		t.Error("Verify should return false for wrong session")
+	}
+}
