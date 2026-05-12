@@ -25,3 +25,20 @@ func GenerateToken(sessionID string) string {
 	mac.Write([]byte(sessionID))
 	return hex.EncodeToString(mac.Sum(nil))
 }
+
+// Verify checks that the provided token matches the expected HMAC for sessionID.
+// Uses constant-time comparison to prevent timing attacks.
+func Verify(sessionID, token string) bool {
+	expected := GenerateToken(sessionID)
+	eBytes, err := hex.DecodeString(expected)
+	if err != nil {
+		return false
+	}
+
+	tBytes, err := hex.DecodeString(token)
+	if err != nil {
+		return false
+	}
+
+	return hmac.Equal(eBytes, tBytes)
+}
