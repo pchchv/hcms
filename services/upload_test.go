@@ -19,6 +19,30 @@ func TestNewUploader(t *testing.T) {
 	}
 }
 
+func TestUploader_Save_TooBig(t *testing.T) {
+	dir := t.TempDir()
+	u := NewUploader(dir)
+	u.MaxSize = 10 // 10 bytes max
+	bigContent := make([]byte, 100)
+	fh := makeFakeMultipartFile(t, bigContent, "big.jpg", "image/jpeg")
+	fh.Size = 100 // override size check
+	_, err := u.Save(fh)
+	if err == nil {
+		t.Error("expected error for oversized file")
+	}
+}
+
+func TestUploader_Save_InvalidMIME(t *testing.T) {
+	dir := t.TempDir()
+	u := NewUploader(dir)
+	// plain text content — not an image
+	fh := makeFakeMultipartFile(t, []byte("hello world this is text"), "test.txt", "text/plain")
+	_, err := u.Save(fh)
+	if err == nil {
+		t.Error("expected error for non-image MIME type")
+	}
+}
+
 func makeFakeMultipartFile(t *testing.T, content []byte, filename, contentType string) *multipart.FileHeader {
 	t.Helper()
 	var buf bytes.Buffer
