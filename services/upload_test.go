@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"mime/multipart"
 	"net/textproto"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -40,6 +43,30 @@ func TestUploader_Save_InvalidMIME(t *testing.T) {
 	_, err := u.Save(fh)
 	if err == nil {
 		t.Error("expected error for non-image MIME type")
+	}
+}
+
+func TestUploader_Save_PNG(t *testing.T) {
+	dir := t.TempDir()
+	u := NewUploader(dir)
+	fh := makeFakeMultipartFile(t, makeFakeImage(), "test.png", "image/png")
+	path, err := u.Save(fh)
+	if err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	if !strings.HasPrefix(path, "/uploads/") {
+		t.Errorf("expected path starting with /uploads/, got %q", path)
+	}
+
+	if !strings.HasSuffix(path, ".png") {
+		t.Errorf("expected .png extension, got %q", path)
+	}
+
+	// verify file exists on disk
+	filename := strings.TrimPrefix(path, "/uploads/")
+	if _, err := os.Stat(filepath.Join(dir, filename)); os.IsNotExist(err) {
+		t.Error("file should exist on disk after Save")
 	}
 }
 
