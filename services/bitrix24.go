@@ -86,6 +86,32 @@ func NewBitrixPool(db *sql.DB, workers, queueSize int) (p *BitrixPool) {
 	return
 }
 
+// Submit adds a lead to the processing queue (non-blocking; drops if queue is full).
+func (p *BitrixPool) Submit(lead models.Lead) {
+	select {
+	case p.queue <- lead:
+	default:
+		// queue full
+		// drop silently
+	}
+}
+
+// Shutdown closes the queue channel and waits for all workers to finish,
+// with a maximum wait of the specified timeout.
+func (p *BitrixPool) Shutdown(timeout time.Duration) {
+	close(p.queue)
+	done := make(chan struct{})
+	go func() {
+		p.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(timeout):
+	}
+}
+
 // processLead reads current settings and sends the lead to Bitrix24.
 func (p *BitrixPool) processLead(lead models.Lead) {
 	settings, err := database.Get(p.db)
