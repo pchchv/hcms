@@ -23,3 +23,15 @@ type bitrixPhone struct {
 	Value     string `json:"VALUE"`
 	ValueType string `json:"VALUE_TYPE"`
 }
+
+type bitrixFields struct {
+	Name     string        `json:"NAME"`
+	Phone    []bitrixPhone `json:"PHONE"`
+	Email    []bitrixEmail `json:"EMAIL,omitempty"`
+	Title    string        `json:"TITLE"`
+	Comments string        `json:"COMMENTS"`
+}
+
+type bitrixPayload struct {
+	Fields bitrixFields `json:"fields"`
+}
