@@ -3,12 +3,15 @@ package services
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
+	"github.com/pchchv/hcms/database"
 	"github.com/pchchv/hcms/models"
 )
 
@@ -67,6 +70,37 @@ type BitrixPool struct {
 	client BitrixClient
 	queue  chan models.Lead
 	wg     sync.WaitGroup
+}
+
+// processLead reads current settings and sends the lead to Bitrix24.
+func (p *BitrixPool) processLead(lead models.Lead) {
+	settings, err := database.Get(p.db)
+	if err != nil || !settings.Bitrix24Enabled || settings.Bitrix24Webhook == "" {
+		return
+	}
+
+	var response string
+	ctx := context.Background()
+	sentAt := time.Now().UTC()
+	status := models.StatusSent
+	if err = p.client.SendLead(ctx, lead, settings.Bitrix24Webhook); err != nil {
+		status = models.StatusError
+		response = err.Error()
+		if len(response) > 1000 {
+			response = response[:1000]
+		}
+	}
+
+	_ = database.UpdateLeadBitrix(p.db, lead.ID, status, response, sentAt)
+}
+
+// worker processes leads from the queue.
+func (p *BitrixPool) worker() {
+	defer p.wg.Done()
+
+	for lead := range p.queue {
+		p.processLead(lead)
+	}
 }
 
 type bitrixEmail struct {
