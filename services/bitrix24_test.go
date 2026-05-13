@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -69,4 +70,40 @@ func TestHTTPBitrixClient_ServerError(t *testing.T) {
 	if client.SendLead(context.Background(), lead, srv.URL) == nil {
 		t.Error("expected error for 500 response")
 	}
+}
+
+func setupPoolDB(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	if _, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS settings (
+			id INTEGER PRIMARY KEY DEFAULT 1,
+			site_name TEXT NOT NULL DEFAULT 'My CMS',
+			admin_email TEXT NOT NULL DEFAULT '',
+			admin_password TEXT NOT NULL DEFAULT '',
+			bitrix24_webhook TEXT NOT NULL DEFAULT '',
+			bitrix24_enabled INTEGER NOT NULL DEFAULT 0,
+			CHECK(id = 1)
+		);
+		CREATE TABLE IF NOT EXISTS leads (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			phone TEXT NOT NULL,
+			email TEXT NOT NULL DEFAULT '',
+			comment TEXT NOT NULL DEFAULT '',
+			status TEXT NOT NULL DEFAULT 'new',
+			bitrix_response TEXT NOT NULL DEFAULT '',
+			bitrix_sent_at DATETIME,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		INSERT INTO settings (id, bitrix24_webhook, bitrix24_enabled)
+		VALUES (1, 'https://example.com/webhook', 1);
+	`); err != nil {
+		t.Fatalf("setup schema: %v", err)
+	}
+	return db
 }
