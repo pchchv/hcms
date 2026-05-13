@@ -1,7 +1,13 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
 
 	"github.com/pchchv/hcms/models"
 )
@@ -13,6 +19,47 @@ type BitrixClient interface {
 
 // HTTPBitrixClient implements BitrixClient using net/http.
 type HTTPBitrixClient struct{}
+
+// SendLead sends a lead to Bitrix24 CRM via the provided webhook URL.
+func (c *HTTPBitrixClient) SendLead(ctx context.Context, lead models.Lead, webhookURL string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	fields := bitrixFields{
+		Name:     lead.Name,
+		Phone:    []bitrixPhone{{Value: lead.Phone, ValueType: "WORK"}},
+		Comments: lead.Comment,
+		Title:    "Заявка с сайта " + lead.CreatedAt.Format("02.01.2006 15:04"),
+	}
+	if lead.Email != "" {
+		fields.Email = []bitrixEmail{{Value: lead.Email, ValueType: "WORK"}}
+	}
+
+	payload := bitrixPayload{Fields: fields}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal bitrix payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhookURL, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create bitrix request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("send bitrix request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("bitrix webhook returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}
 
 type bitrixEmail struct {
 	Value     string `json:"VALUE"`
