@@ -61,6 +61,14 @@ func (c *HTTPBitrixClient) SendLead(ctx context.Context, lead models.Lead, webho
 	return nil
 }
 
+// BitrixPool manages a pool of worker goroutines that process leads asynchronously.
+type BitrixPool struct {
+	db     *sql.DB
+	client BitrixClient
+	queue  chan models.Lead
+	wg     sync.WaitGroup
+}
+
 type bitrixEmail struct {
 	Value     string `json:"VALUE"`
 	ValueType string `json:"VALUE_TYPE"`
