@@ -72,6 +72,20 @@ type BitrixPool struct {
 	wg     sync.WaitGroup
 }
 
+// NewBitrixPool creates a new BitrixPool with the specified number of workers and queue size.
+func NewBitrixPool(db *sql.DB, workers, queueSize int) (p *BitrixPool) {
+	p = &BitrixPool{
+		db:     db,
+		queue:  make(chan models.Lead, queueSize),
+		client: &HTTPBitrixClient{},
+	}
+	for i := 0; i < workers; i++ {
+		p.wg.Add(1)
+		go p.worker()
+	}
+	return
+}
+
 // processLead reads current settings and sends the lead to Bitrix24.
 func (p *BitrixPool) processLead(lead models.Lead) {
 	settings, err := database.Get(p.db)
