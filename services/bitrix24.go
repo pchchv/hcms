@@ -13,3 +13,13 @@ type BitrixClient interface {
 
 // HTTPBitrixClient implements BitrixClient using net/http.
 type HTTPBitrixClient struct{}
+
+type bitrixEmail struct {
+	Value     string `json:"VALUE"`
+	ValueType string `json:"VALUE_TYPE"`
+}
+
+type bitrixPhone struct {
+	Value     string `json:"VALUE"`
+	ValueType string `json:"VALUE_TYPE"`
+}
