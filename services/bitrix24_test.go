@@ -72,6 +72,40 @@ func TestHTTPBitrixClient_ServerError(t *testing.T) {
 	}
 }
 
+func TestBitrixPool_Submit_Drains(t *testing.T) {
+	db := setupPoolDB(t)
+	pool := NewBitrixPool(db, 2, 10)
+	// replace the client with mock
+	mock := &mockBitrixClient{}
+	pool.client = mock
+	lead := models.Lead{ID: 1, Name: "Test", Phone: "123", Status: models.StatusNew, CreatedAt: time.Now()}
+	pool.Submit(lead)
+	pool.Shutdown(5 * time.Second)
+	// mock client may or may not be called depending on whether settings returned by db.Get has bitrix enabled
+	// just verify no deadlock/panic
+}
+
+func TestBitrixPool_FullQueue_Drops(t *testing.T) {
+	db := setupPoolDB(t)
+	pool := NewBitrixPool(db, 0, 0) // 0 workers, 0 queue — immediate drop
+	pool.client = &mockBitrixClient{}
+	lead := models.Lead{Name: "Test", Phone: "123", CreatedAt: time.Now()}
+	// should not block
+	done := make(chan struct{})
+	go func() {
+		pool.Submit(lead)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Error("Submit blocked on full queue")
+	}
+
+	pool.Shutdown(time.Second)
+}
+
 func setupPoolDB(t *testing.T) *sql.DB {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:")
