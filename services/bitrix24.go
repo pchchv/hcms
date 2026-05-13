@@ -10,3 +10,6 @@ import (
 type BitrixClient interface {
 	SendLead(ctx context.Context, lead models.Lead, webhookURL string) error
 }
+
+// HTTPBitrixClient implements BitrixClient using net/http.
+type HTTPBitrixClient struct{}
