@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +12,20 @@ import (
 	"github.com/pchchv/hcms/models"
 	_ "modernc.org/sqlite"
 )
+
+// mockBitrixClient implements BitrixClient for testing.
+type mockBitrixClient struct {
+	calls  []models.Lead
+	errMsg string
+}
+
+func (m *mockBitrixClient) SendLead(_ context.Context, lead models.Lead, _ string) error {
+	m.calls = append(m.calls, lead)
+	if m.errMsg != "" {
+		return errors.New(m.errMsg)
+	}
+	return nil
+}
 
 func TestHTTPBitrixClient_SendLead(t *testing.T) {
 	var received map[string]interface{}
