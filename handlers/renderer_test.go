@@ -72,6 +72,22 @@ func TestRenderer_Standalone_404(t *testing.T) {
 	}
 }
 
+func TestJSON_WritesJSON(t *testing.T) {
+	rr := httptest.NewRecorder()
+	JSON(rr, 200, map[string]string{"key": "value"})
+	if rr.Code != 200 {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+
+	if ct := rr.Header().Get("Content-Type"); !strings.Contains(ct, "application/json") {
+		t.Errorf("expected JSON content-type, got %q", ct)
+	}
+
+	if !strings.Contains(rr.Body.String(), `"key"`) {
+		t.Errorf("expected key in response, got %q", rr.Body.String())
+	}
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
