@@ -48,6 +48,30 @@ func TestRenderer_Page_Renders(t *testing.T) {
 	}
 }
 
+func TestRenderer_Standalone_LoginPage(t *testing.T) {
+	r := NewRenderer(templatesDir)
+	rr := httptest.NewRecorder()
+	r.Standalone(rr, 200, "admin/login.html", map[string]any{
+		"Error": "",
+	})
+	if rr.Code != 200 {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+
+	if !strings.Contains(rr.Body.String(), "<html") {
+		t.Errorf("expected HTML response, body starts with: %q", rr.Body.String()[:min(100, rr.Body.Len())])
+	}
+}
+
+func TestRenderer_Standalone_404(t *testing.T) {
+	r := NewRenderer(templatesDir)
+	rr := httptest.NewRecorder()
+	r.Standalone(rr, 404, "errors/404.html", nil)
+	if rr.Code != 404 {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
