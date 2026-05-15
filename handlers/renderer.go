@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -95,6 +96,25 @@ func (r *Renderer) Partial(w http.ResponseWriter, page, tmplName string, data an
 	}
 }
 
+// Standalone renders a standalone HTML file (login page, error pages) without a base layout.
+func (r *Renderer) Standalone(w http.ResponseWriter, status int, file string, data any) {
+	t, err := r.parseStandalone(file)
+	if err != nil {
+		log.Printf("renderer.Standalone parse error (file=%s): %v", file, err)
+		http.Error(w, "Template parse error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// template name is the base filename
+	// (same for both fs.FS and filepath)
+	name := path.Base(file)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	if err := t.ExecuteTemplate(w, name, data); err != nil {
+		log.Printf("renderer.Standalone execute error (file=%s): %v", file, err)
+	}
+}
+
 // layoutPaths returns the slash-separated template paths for a full admin page.
 func (r *Renderer) layoutPaths(page string) []string {
 	return []string{
@@ -122,4 +142,14 @@ func (r *Renderer) parseLayout(page string) (*template.Template, error) {
 	}
 
 	return t.ParseFiles(fsPaths...)
+}
+
+// parseStandalone parses a single standalone template file.
+func (r *Renderer) parseStandalone(file string) (*template.Template, error) {
+	t := template.New("").Funcs(funcMap)
+	if r.fsys != nil {
+		return t.ParseFS(r.fsys, file)
+	}
+
+	return t.ParseFiles(filepath.Join(r.dir, filepath.FromSlash(file)))
 }
