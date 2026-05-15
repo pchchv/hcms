@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"log"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
@@ -60,6 +62,37 @@ type Renderer struct {
 // NewRenderer creates a Renderer that loads templates from dir on disk (dev mode).
 func NewRenderer(dir string) *Renderer {
 	return &Renderer{dir: dir}
+}
+
+// Page renders a full admin page using the base layout.
+// Executes the "base" template.
+func (r *Renderer) Page(w http.ResponseWriter, page string, data any) {
+	t, err := r.parseLayout(page)
+	if err != nil {
+		log.Printf("renderer.Page parse error (page=%s): %v", page, err)
+		http.Error(w, "Template parse error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(w, "base", data); err != nil {
+		log.Printf("renderer.Page execute error (page=%s): %v", page, err)
+	}
+}
+
+// Partial renders a named template from a page file (for HTMX responses).
+func (r *Renderer) Partial(w http.ResponseWriter, page, tmplName string, data any) {
+	t, err := r.parseLayout(page)
+	if err != nil {
+		log.Printf("renderer.Partial parse error (page=%s tmpl=%s): %v", page, tmplName, err)
+		http.Error(w, "Template parse error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(w, tmplName, data); err != nil {
+		log.Printf("renderer.Partial execute error (page=%s tmpl=%s): %v", page, tmplName, err)
+	}
 }
 
 // layoutPaths returns the slash-separated template paths for a full admin page.
