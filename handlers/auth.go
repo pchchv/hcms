@@ -71,3 +71,22 @@ func (s *Server) HandleLoginPage(w http.ResponseWriter, r *http.Request) {
 		"Title": "Вход в систему",
 	})
 }
+
+// HandleLogout processes POST /admin/logout.
+func (s *Server) HandleLogout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("cms_session")
+	if err == nil && cookie.Value != "" {
+		_ = database.DeleteSession(s.db, cookie.Value)
+	}
+
+	// clear the session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "cms_session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, "/admin/login", http.StatusFound)
+}
