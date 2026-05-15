@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -162,4 +163,18 @@ func (r *Renderer) parseStandalone(file string) (*template.Template, error) {
 	}
 
 	return t.ParseFiles(filepath.Join(r.dir, filepath.FromSlash(file)))
+}
+
+// Redirect sends a 302 redirect.
+func Redirect(w http.ResponseWriter, r *http.Request, url string) {
+	http.Redirect(w, r, url, http.StatusFound)
+}
+
+// JSON writes a JSON response with the given status code.
+func JSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("JSON encode error: %v", err)
+	}
 }
