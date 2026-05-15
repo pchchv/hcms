@@ -65,6 +65,16 @@ func NewRenderer(dir string) *Renderer {
 	return &Renderer{dir: dir}
 }
 
+// NewEmbeddedRenderer creates a Renderer that reads templates from the given embedded FS.
+// The FS is expected to have a "templates" root directory (as produced by ui.Templates).
+func NewEmbeddedRenderer(fsys fs.FS) *Renderer {
+	sub, err := fs.Sub(fsys, "templates")
+	if err != nil {
+		panic("embedded renderer: " + err.Error())
+	}
+	return &Renderer{fsys: sub}
+}
+
 // Page renders a full admin page using the base layout.
 // Executes the "base" template.
 func (r *Renderer) Page(w http.ResponseWriter, page string, data any) {
