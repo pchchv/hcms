@@ -24,3 +24,73 @@ func TestGetFlash_InvalidJSON(t *testing.T) {
 		t.Error("expected nil flash for invalid JSON")
 	}
 }
+
+func TestGetFlash_ReadsAndClears(t *testing.T) {
+	// first set the flash
+	setRR := httptest.NewRecorder()
+	SetFlash(setRR, Flash{Type: "error", Message: "Something went wrong"})
+	// extract the cookie value
+	var cookieHeader string
+	for _, c := range setRR.Result().Cookies() {
+		if c.Name == flashCookieName {
+			cookieHeader = c.Value
+		}
+	}
+
+	if cookieHeader == "" {
+		t.Fatal("flash cookie not set")
+	}
+
+	// read it back
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: flashCookieName, Value: cookieHeader})
+	getRR := httptest.NewRecorder()
+	flash := GetFlash(req, getRR)
+	if flash == nil {
+		t.Fatal("expected flash message")
+	}
+
+	if flash.Type != "error" {
+		t.Errorf("expected type=error, got %q", flash.Type)
+	}
+
+	if flash.Message != "Something went wrong" {
+		t.Errorf("unexpected message: %q", flash.Message)
+	}
+
+	// cookie should be cleared (MaxAge=-1)
+	var cleared bool
+	for _, c := range getRR.Result().Cookies() {
+		if c.Name == flashCookieName && c.MaxAge == -1 {
+			cleared = true
+		}
+	}
+
+	if !cleared {
+		t.Error("expected flash cookie to be cleared after reading")
+	}
+}
+
+func TestSetFlash_SetsCookie(t *testing.T) {
+	rr := httptest.NewRecorder()
+	SetFlash(rr, Flash{Type: "success", Message: "Saved!"})
+
+	cookies := rr.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatal("expected flash cookie to be set")
+	}
+
+	var found bool
+	for _, c := range cookies {
+		if c.Name == flashCookieName {
+			found = true
+			if c.Value == "" {
+				t.Error("flash cookie value should not be empty")
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("cookie %q not found", flashCookieName)
+	}
+}
