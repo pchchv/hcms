@@ -1,6 +1,9 @@
 package handlers
 
-import "net/url"
+import (
+	"net/url"
+	"strconv"
+)
 
 // PaginationData holds computed pagination metadata.
 type PaginationData struct {
@@ -54,6 +57,50 @@ func newPagination(total, page, limit int, q url.Values) PaginationData {
 		To:    to,
 		query: q,
 	}
+}
+
+// QueryWithPage returns the current URL query string with the page parameter replaced.
+func (p PaginationData) QueryWithPage(pg int) string {
+	q := cloneValues(p.query)
+	q.Set("page", strconv.Itoa(pg))
+	return "?" + q.Encode()
+}
+
+// PageNumbers returns a slice of page numbers to display,
+// with -1 representing ellipsis.
+func (p PaginationData) PageNumbers() []int {
+	if p.Pages <= 7 {
+		pages := make([]int, p.Pages)
+		for i := range pages {
+			pages[i] = i + 1
+		}
+		return pages
+	}
+
+	result := append([]int{}, 1)
+	if p.Page > 3 {
+		result = append(result, -1) // ellipsis
+	}
+
+	start := p.Page - 1
+	if start < 2 {
+		start = 2
+	}
+
+	end := p.Page + 1
+	if end > p.Pages-1 {
+		end = p.Pages - 1
+	}
+
+	for i := start; i <= end; i++ {
+		result = append(result, i)
+	}
+
+	if p.Page < p.Pages-2 {
+		result = append(result, -1) // ellipsis
+	}
+
+	return append(result, p.Pages)
 }
 
 // cloneValues creates a deep copy of url.Values.
