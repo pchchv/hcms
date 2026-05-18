@@ -45,3 +45,22 @@ func GetFlash(r *http.Request, w http.ResponseWriter) *Flash {
 
 	return &flash
 }
+
+// SetFlash stores a flash message in a cookie
+// (base64-encoded JSON, 1 hour TTL).
+func SetFlash(w http.ResponseWriter, flash Flash) {
+	data, err := json.Marshal(flash)
+	if err != nil {
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     flashCookieName,
+		Value:    base64.RawURLEncoding.EncodeToString(data),
+		Path:     "/",
+		MaxAge:   3600,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(time.Hour),
+	})
+}
