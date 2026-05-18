@@ -124,3 +124,38 @@ func (s *Server) HandleNewsEdit(w http.ResponseWriter, r *http.Request) {
 	data["IsNew"] = false
 	s.renderer.Page(w, "news_form", data)
 }
+
+// parseNewsForm parses and validates news form data.
+// Returns the populated News struct and any field errors.
+func parseNewsForm(r *http.Request) (*models.News, map[string]string) {
+	errs := make(map[string]string)
+	title := strings.TrimSpace(r.FormValue("title"))
+	if title == "" {
+		errs["title"] = "Заголовок обязателен"
+	} else if len([]rune(title)) > 500 {
+		errs["title"] = "Заголовок не должен превышать 500 символов"
+	}
+
+	var date time.Time
+	dateStr := r.FormValue("date")
+	if dateStr == "" {
+		errs["date"] = "Дата обязательна"
+	} else {
+		var err error
+		date, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			errs["date"] = "Неверный формат даты (ГГГГ-ММ-ДД)"
+		}
+	}
+
+	announce := strings.TrimSpace(r.FormValue("announce"))
+	description := strings.TrimSpace(r.FormValue("description"))
+	n := &models.News{
+		Date:        date,
+		Title:       title,
+		Announce:    announce,
+		Description: description,
+	}
+
+	return n, errs
+}
