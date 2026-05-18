@@ -109,11 +109,12 @@ func (p PaginationData) PageNumbers() []int {
 }
 
 // cloneValues creates a deep copy of url.Values.
-func cloneValues(v url.Values) (out url.Values) {
+func cloneValues(v url.Values) url.Values {
+	out := make(url.Values)
 	for k, vals := range v {
 		out[k] = append([]string(nil), vals...)
 	}
-	return
+	return out
 }
 
 // baseData builds the common data map needed by all admin pages.
