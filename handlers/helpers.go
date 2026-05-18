@@ -55,3 +55,11 @@ func newPagination(total, page, limit int, q url.Values) PaginationData {
 		query: q,
 	}
 }
+
+// cloneValues creates a deep copy of url.Values.
+func cloneValues(v url.Values) (out url.Values) {
+	for k, vals := range v {
+		out[k] = append([]string(nil), vals...)
+	}
+	return
+}
