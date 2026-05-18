@@ -1,8 +1,13 @@
 package handlers
 
 import (
+	"database/sql"
+	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/pchchv/hcms/database"
+	"github.com/pchchv/hcms/middleware"
 )
 
 // PaginationData holds computed pagination metadata.
@@ -109,4 +114,28 @@ func cloneValues(v url.Values) (out url.Values) {
 		out[k] = append([]string(nil), vals...)
 	}
 	return
+}
+
+// baseData builds the common data map needed by all admin pages.
+// It queries settings, new lead count, CSRF token, and flash messages.
+func baseData(r *http.Request, w http.ResponseWriter, db *sql.DB, page, title string) map[string]any {
+	var csrfToken string
+	session := middleware.GetSession(r.Context())
+	if session != nil {
+		csrfToken = middleware.GenerateToken(session.ID)
+	}
+
+	settings, _ := database.Get(db)
+	newLeadsCount, _ := database.CountByStatus(db, "new")
+	flash := GetFlash(r, w)
+	data := map[string]any{
+		"Page":          page,
+		"Title":         title,
+		"Session":       session,
+		"CSRFToken":     csrfToken,
+		"Settings":      settings,
+		"NewLeadsCount": newLeadsCount,
+		"Flash":         flash,
+	}
+	return data
 }
